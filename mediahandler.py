@@ -1,7 +1,6 @@
 import yt_dlp
 import os, random, vlc, time
 
-#Mostly AI, next refactor should take care of that
 def download_best_audio(url):
     if not os.path.exists('./media'):
         os.makedirs('./media')
@@ -20,5 +19,14 @@ def download_best_audio(url):
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([url])
+
+
+def playsong():
+    os.chdir('./media/')
+    files = os.listdir()
+    select = f"{files[random.randint(0,len(files)-1)]}"
+    play = vlc.MediaPlayer(select)
+    return play 
+
 
 
