@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QMainWindow, QDialog,QGridLayout, QApplication, QPushButton, QWidget, QMessageBox, QTextEdit, QDateEdit, QLabel, QLineEdit, QFrame, QVBoxLayout, QHBoxLayout
 from PyQt6.QtCore import QDateTime,QDate
-from uuid import uuid4
+from uuid import uuid4 
 
 class manageFrame(QWidget):
     def __init__(self, logicObject): #This is called composition. I am inheriting indirectly only what I need from mainwindow
