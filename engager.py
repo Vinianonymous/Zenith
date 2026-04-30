@@ -172,6 +172,7 @@ class taskFrame(QFrame):
 class mainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+
         # Apparently I have to set a central widget and give layout to that instead of the mainwindow
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
