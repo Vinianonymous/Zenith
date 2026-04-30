@@ -198,4 +198,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main()  # This is a comment to test lazygit
