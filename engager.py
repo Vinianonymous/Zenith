@@ -100,7 +100,6 @@ class IHandler:
             # Return the task
             return pop_up.task
         # Else return nothing
-        return None
 
     def update(self):
         """
@@ -121,9 +120,6 @@ class IHandler:
             task_widget = taskWidget(task)
             self.mw.task_frame.layout.addWidget(task_widget)
 
-    def showInfo(self, task):
-        pop_up = QDialog(self.mw)
-
 
 class taskWidget(QWidget):
     def __init__(self, task):
@@ -142,8 +138,38 @@ class taskWidget(QWidget):
         self.layout.addWidget(self.info_button)
         self.info_button.clicked.connect(self.showInformation)
 
-    def showInformation(self):
-        IHandler.showInfo(self.task)
+    def showInformation(self) -> None:
+        """
+        Displays description, due date and UUID of task
+        """
+        pop_up = QDialog(self)
+        layout = QGridLayout()
+        pop_up.setLayout(layout)
+
+        # labels setup
+        desc_label = QLabel("Description: ")
+        due_label = QLabel("Due date")
+        id_label = QLabel("Id (Debug Info): ")
+
+        layout.addWidget(desc_label, 0, 0, 1, 1)
+        layout.addWidget(due_label, 1, 0, 1, 1)
+        layout.addWidget(id_label, 2, 0, 1, 1)
+
+        # Information Displays
+        desc = QLabel(self.task["desc"])
+        due = QLabel(str(self.task["due"]))
+        id = QLabel(self.task["id"])
+
+        layout.addWidget(desc, 0, 1, 1, 1)
+        layout.addWidget(due, 1, 1, 1, 1)
+        layout.addWidget(id, 2, 1, 1, 1)
+
+        # Ok button setup
+        ok_button = QPushButton("Acknowledge")
+        layout.addWidget(ok_button, 3, 1, 1, 1)
+        ok_button.clicked.connect(pop_up.accept)
+
+        pop_up.exec()
 
 
 class Logic:
