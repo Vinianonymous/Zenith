@@ -5,7 +5,6 @@ from PyQt6.QtWidgets import (
     QApplication,
     QPushButton,
     QWidget,
-    QMessageBox,
     QTextEdit,
     QDateEdit,
     QLabel,
@@ -14,7 +13,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
 )
-from PyQt6.QtCore import QDateTime, QDate
 from uuid import uuid4
 
 
@@ -36,17 +34,16 @@ class manageFrame(QWidget):
 
 
 class IHandler:
-    def __init__(self, mw):
-        self.mw = mw
+    def __init__(self, window):
+        self.mw = window
 
-    @classmethod
-    def newTask(self, window) -> dict:
+    def newTask(self):
         """
         Takes the main window as arguement. Returns the task dictionary.
 
         """
         # Boiler plate to set up geometry and layout
-        pop_up = QDialog(window)
+        pop_up = QDialog(self.mw)
         pop_up.setGeometry(0, 0, 500, 400)
         layout = QGridLayout()
         pop_up.setLayout(layout)
@@ -101,7 +98,7 @@ class IHandler:
             return pop_up.task
         # Else return nothing
 
-    def update(self):
+    def update(self, tasks):
         """
         Updates the task Frame display.
         """
@@ -116,18 +113,19 @@ class IHandler:
 
         # Adding sectionHandler.showInfo(self.task)
         # For each task in the task List, create a widget and append it to the task frame layout
-        for task in self.mw.logic.tasks:
-            task_widget = taskWidget(task)
+        for task in tasks:
+            task_widget = taskWidget(task, self.mw.logic)
             self.mw.task_frame.layout.addWidget(task_widget)
 
 
 class taskWidget(QWidget):
-    def __init__(self, task):
+    def __init__(self, task, logicObject):
         # Boiler plate
         super().__init__()
         self.task = task
         self.layout = QHBoxLayout()
         self.setLayout(self.layout)
+        self.logic = logicObject
 
         # Task name
         self.name = QLabel(task["name"])
@@ -137,6 +135,11 @@ class taskWidget(QWidget):
         self.info_button = QPushButton("Info")
         self.layout.addWidget(self.info_button)
         self.info_button.clicked.connect(self.showInformation)
+
+        # Delete button
+        self.delete_button = QPushButton("Delete")
+        self.layout.addWidget(self.delete_button)
+        self.delete_button.clicked.connect(self.deleteTask)
 
     def showInformation(self) -> None:
         """
@@ -171,21 +174,29 @@ class taskWidget(QWidget):
 
         pop_up.exec()
 
+    def deleteTask(self):
+        self.logic.delete(self.task)
+
 
 class Logic:
     def __init__(self, main):
         self.mw = main
+        self.i_handler = IHandler(self.mw)
         self.tasks = []
 
     def addTask(self):
         """
         Prompts the Ihandler for a popup, appends it to list, updates the display.
         """
-        task = self.mw.i_handler.newTask(self.mw)
+        task = self.i_handler.newTask()
         if task:
             self.tasks.append(task)
-            self.mw.i_handler.update()
+            self.i_handler.update(self.tasks)
             print(task)
+
+    def delete(self, task):
+        self.tasks.remove(task)
+        self.i_handler.update(self.tasks)
 
 
 class taskFrame(QFrame):
@@ -206,7 +217,6 @@ class mainWindow(QMainWindow):
         central_widget.setLayout(self.layout)
 
         self.logic = Logic(self)
-        self.i_handler = IHandler(self)
 
         self.task_frame = taskFrame()
         self.layout.addWidget(self.task_frame, 1, 1, 2, 2)
