@@ -29,8 +29,15 @@ class manageFrame(QWidget):
         self.addButton.clicked.connect(self.add)
         self.layout.addWidget(self.addButton, 1, 1, 1, 1)
 
+        self.do_button = QPushButton("Begin Task execution!")
+        self.do_button.clicked.connect(self.begin)
+        self.layout.addWidget(self.do_button)
+
     def add(self):
         self.logic_object.addTask()
+
+    def begin(self):
+        self.logic_object.beginExec()
 
 
 class IHandler:
@@ -198,6 +205,11 @@ class Logic:
         self.tasks.remove(task)
         self.i_handler.update(self.tasks)
 
+    def beginExec(self):
+        # I need to create a QStackedWidget, prepare that window, and link it to logic.
+        # This probably means that before doing this, I should refactor this whole code for more reusability
+        pass
+
 
 class taskFrame(QFrame):
     def __init__(self):
@@ -219,7 +231,7 @@ class mainWindow(QMainWindow):
         self.logic = Logic(self)
 
         self.task_frame = taskFrame()
-        self.layout.addWidget(self.task_frame, 1, 1, 2, 2)
+        self.layout.addWidget(self.task_frame, 1, 1, 1, 1)
 
         self.manage_frame = manageFrame(self.logic)
         self.layout.addWidget(self.manage_frame, 2, 1, 1, 1)
@@ -234,4 +246,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()  # This is a comment to test lazygit
+    main()
