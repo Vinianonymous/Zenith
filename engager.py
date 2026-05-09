@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
 )
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal, QDate
 from uuid import uuid4
 
 
@@ -62,6 +62,7 @@ def newTaskDialog(parent) -> dict | None:
 
     layout.addWidget(QLabel("Due date:"), 3, 1, 1, 1)
     date = QDateEdit()
+    date.setDate(QDate.currentDate())
     date.setCalendarPopup(True)
     date.setDisplayFormat("yyyy-MM-dd")
     layout.addWidget(date, 3, 2, 1, 2)
@@ -70,7 +71,7 @@ def newTaskDialog(parent) -> dict | None:
         pop_up.task = {
             "name": name.text(),
             "desc": desc.toPlainText(),
-            "due": date.date(),
+            "due": date.date().toString("yyyy-MM-dd"),
             "id": str(uuid4()),
         }
         pop_up.accept()
