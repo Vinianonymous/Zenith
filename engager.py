@@ -13,230 +13,199 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
 )
+from PyQt6.QtCore import QObject, pyqtSignal
 from uuid import uuid4
 
 
-class manageFrame(QWidget):
-    def __init__(
-        self, logicObject
-    ):  # This is called composition. I am inheriting indirectly only what I need from mainwindow
+# ── Business Logic ─────────────────────────────────────────────────────────────
+# Logic knows nothing about any widget. It only manages the task list
+# and announces changes via signals.
+
+
+class Logic(QObject):
+    tasks_changed = pyqtSignal(list)  # emitted after every add / delete
+    exec_started = pyqtSignal()  # emitted when the user hits Begin
+
+    def __init__(self):
         super().__init__()
-        self.logic_object = logicObject
-        self.layout = QGridLayout()
-        self.setLayout(self.layout)
+        self.tasks = []
 
-        self.addButton = QPushButton("Add Task")
-        self.addButton.clicked.connect(self.add)
-        self.layout.addWidget(self.addButton, 1, 1, 1, 1)
+    def addTask(self, task: dict):
+        self.tasks.append(task)
+        self.tasks_changed.emit(list(self.tasks))
 
-        self.do_button = QPushButton("Begin Task execution!")
-        self.do_button.clicked.connect(self.begin)
-        self.layout.addWidget(self.do_button)
+    def deleteTask(self, task: dict):
+        self.tasks.remove(task)
+        self.tasks_changed.emit(list(self.tasks))
 
-    def add(self):
-        self.logic_object.addTask()
-
-    def begin(self):
-        self.logic_object.beginExec()
+    def beginExec(self):
+        self.exec_started.emit()
 
 
-class IHandler:
-    def __init__(self, window):
-        self.mw = window
+# ── Dialog (standalone function) ───────────────────────────────────────────────
+# Lives in the UI layer. Returns a task dict or None. No reference to Logic.
 
-    def newTask(self):
-        """
-        Takes the main window as arguement. Returns the task dictionary.
 
-        """
-        # Boiler plate to set up geometry and layout
-        pop_up = QDialog(self.mw)
-        pop_up.setGeometry(0, 0, 500, 400)
-        layout = QGridLayout()
-        pop_up.setLayout(layout)
+def newTaskDialog(parent) -> dict | None:
+    pop_up = QDialog(parent)
+    pop_up.setGeometry(0, 0, 500, 400)
+    layout = QGridLayout()
+    pop_up.setLayout(layout)
 
-        # Input section
-        n_label = QLabel("Task Name")
-        layout.addWidget(n_label, 1, 1, 1, 1)
-        name = QLineEdit()
-        layout.addWidget(name, 1, 2, 1, 2)
+    layout.addWidget(QLabel("Task Name"), 1, 1, 1, 1)
+    name = QLineEdit()
+    layout.addWidget(name, 1, 2, 1, 2)
 
-        desc_label = QLabel("Task description: ")
-        layout.addWidget(desc_label, 2, 1, 1, 1)
-        desc = QTextEdit()
-        layout.addWidget(desc, 2, 2, 1, 2)
+    layout.addWidget(QLabel("Task description:"), 2, 1, 1, 1)
+    desc = QTextEdit()
+    layout.addWidget(desc, 2, 2, 1, 2)
 
-        date_label = QLabel("Due date: ")
-        layout.addWidget(date_label, 3, 1, 1, 1)
-        date = QDateEdit()
-        date.setCalendarPopup(True)
-        date.setDisplayFormat("yyyy-MM-dd")
-        layout.addWidget(date, 3, 2, 1, 2)
+    layout.addWidget(QLabel("Due date:"), 3, 1, 1, 1)
+    date = QDateEdit()
+    date.setCalendarPopup(True)
+    date.setDisplayFormat("yyyy-MM-dd")
+    layout.addWidget(date, 3, 2, 1, 2)
 
-        def addTask():
-            # Gets the input in the text boxes
-            taskName = name.text()
-            taskDesc = desc.toPlainText()
-            taskDue = date.date()
+    def confirm():
+        pop_up.task = {
+            "name": name.text(),
+            "desc": desc.toPlainText(),
+            "due": date.date(),
+            "id": str(uuid4()),
+        }
+        pop_up.accept()
 
-            # Generates the task dictionary
-            pop_up.task = {
-                "name": taskName,
-                "desc": taskDesc,
-                "due": taskDue,
-                "id": f"{uuid4()}",
-            }
-            pop_up.accept()
+    cancel = QPushButton("Cancel")
+    cancel.clicked.connect(pop_up.reject)
+    layout.addWidget(cancel, 4, 1, 1, 1)
 
-        # Action section
-        cancel = QPushButton("cancel")
-        layout.addWidget(cancel, 4, 1, 1, 1)
-        cancel.clicked.connect(
-            pop_up.reject
-        )  # If the button is clicked, a signal is sent to end the whole pop up
+    add = QPushButton("Add")
+    add.clicked.connect(confirm)
+    layout.addWidget(add, 4, 2, 1, 1)
 
-        add = QPushButton("Add")
-        layout.addWidget(add, 4, 2, 1, 1)
-        add.clicked.connect(addTask)
+    if pop_up.exec():
+        return pop_up.task
+    return None
 
-        # If the pop up has been properly executed. The main thread is blocked until popup.accept or reject are given.
-        if pop_up.exec():
-            # Return the task
-            return pop_up.task
-        # Else return nothing
 
-    def update(self, tasks):
-        """
-        Updates the task Frame display.
-        """
-
-        # Clearing section: We first remove all the elements to avoid doubling
-        for i in reversed(
-            range(self.mw.task_frame.layout.count())
-        ):  # For I in the reversed count of each widget in it the TF
-            widget = self.mw.task_frame.layout.itemAt(i).widget()  # Gets the widget
-            if widget:  # If it is not none, then the widget gets deleted
-                widget.deleteLater()
-
-        # Adding sectionHandler.showInfo(self.task)
-        # For each task in the task List, create a widget and append it to the task frame layout
-        for task in tasks:
-            task_widget = taskWidget(task, self.mw.logic)
-            self.mw.task_frame.layout.addWidget(task_widget)
+# ── taskWidget ─────────────────────────────────────────────────────────────────
+# Emits delete_requested instead of calling Logic directly.
+# No reference to Logic at all.
 
 
 class taskWidget(QWidget):
-    def __init__(self, task, logicObject):
-        # Boiler plate
+    delete_requested = pyqtSignal(dict)
+
+    def __init__(self, task: dict):
         super().__init__()
         self.task = task
-        self.layout = QHBoxLayout()
-        self.setLayout(self.layout)
-        self.logic = logicObject
+        layout = QHBoxLayout()
+        self.setLayout(layout)
 
-        # Task name
-        self.name = QLabel(task["name"])
-        self.layout.addWidget(self.name)
+        layout.addWidget(QLabel(task["name"]))
 
-        # Show the information: Description, Due date and UUID
-        self.info_button = QPushButton("Info")
-        self.layout.addWidget(self.info_button)
-        self.info_button.clicked.connect(self.showInformation)
+        info_button = QPushButton("Info")
+        info_button.clicked.connect(self.showInformation)
+        layout.addWidget(info_button)
 
-        # Delete button
-        self.delete_button = QPushButton("Delete")
-        self.layout.addWidget(self.delete_button)
-        self.delete_button.clicked.connect(self.deleteTask)
+        delete_button = QPushButton("Delete")
+        delete_button.clicked.connect(lambda: self.delete_requested.emit(self.task))
+        layout.addWidget(delete_button)
 
-    def showInformation(self) -> None:
-        """
-        Displays description, due date and UUID of task
-        """
+    def showInformation(self):
         pop_up = QDialog(self)
         layout = QGridLayout()
         pop_up.setLayout(layout)
 
-        # labels setup
-        desc_label = QLabel("Description: ")
-        due_label = QLabel("Due date")
-        id_label = QLabel("Id (Debug Info): ")
+        layout.addWidget(QLabel("Description:"), 0, 0)
+        layout.addWidget(QLabel("Due date:"), 1, 0)
+        layout.addWidget(QLabel("Id (Debug):"), 2, 0)
 
-        layout.addWidget(desc_label, 0, 0, 1, 1)
-        layout.addWidget(due_label, 1, 0, 1, 1)
-        layout.addWidget(id_label, 2, 0, 1, 1)
+        layout.addWidget(QLabel(self.task["desc"]), 0, 1)
+        layout.addWidget(QLabel(str(self.task["due"])), 1, 1)
+        layout.addWidget(QLabel(self.task["id"]), 2, 1)
 
-        # Information Displays
-        desc = QLabel(self.task["desc"])
-        due = QLabel(str(self.task["due"]))
-        id = QLabel(self.task["id"])
-
-        layout.addWidget(desc, 0, 1, 1, 1)
-        layout.addWidget(due, 1, 1, 1, 1)
-        layout.addWidget(id, 2, 1, 1, 1)
-
-        # Ok button setup
-        ok_button = QPushButton("Acknowledge")
-        layout.addWidget(ok_button, 3, 1, 1, 1)
-        ok_button.clicked.connect(pop_up.accept)
-
+        ok = QPushButton("Acknowledge")
+        ok.clicked.connect(pop_up.accept)
+        layout.addWidget(ok, 3, 1)
         pop_up.exec()
 
-    def deleteTask(self):
-        self.logic.delete(self.task)
 
-
-class Logic:
-    def __init__(self, main):
-        self.mw = main
-        self.i_handler = IHandler(self.mw)
-        self.tasks = []
-
-    def addTask(self):
-        """
-        Prompts the Ihandler for a popup, appends it to list, updates the display.
-        """
-        task = self.i_handler.newTask()
-        if task:
-            self.tasks.append(task)
-            self.i_handler.update(self.tasks)
-            print(task)
-
-    def delete(self, task):
-        self.tasks.remove(task)
-        self.i_handler.update(self.tasks)
-
-    def beginExec(self):
-        # I need to create a QStackedWidget, prepare that window, and link it to logic.
-        # This probably means that before doing this, I should refactor this whole code for more reusability
-        pass
+# ── taskFrame ──────────────────────────────────────────────────────────────────
+# Subscribes to Logic.tasks_changed and redraws itself.
 
 
 class taskFrame(QFrame):
-    def __init__(self):
+    def __init__(self, logic: Logic):
         super().__init__()
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
+        self.logic = logic
+        self.vbox = QVBoxLayout()
+        self.setLayout(self.vbox)
+
+        self.logic.tasks_changed.connect(self.refresh)
+
+    def refresh(self, tasks: list):
+        for i in reversed(range(self.vbox.count())):
+            w = self.vbox.itemAt(i).widget()
+            if w:
+                w.deleteLater()
+        for task in tasks:
+            w = taskWidget(task)
+            w.delete_requested.connect(self.logic.deleteTask)
+            self.vbox.addWidget(w)
+
+
+# ── manageFrame ────────────────────────────────────────────────────────────────
+# Owns the dialog call. Passes the result to Logic.
+
+
+class manageFrame(QWidget):
+    def __init__(self, logic: Logic, parent=None):
+        super().__init__(parent)
+        self.logic = logic
+        layout = QGridLayout()
+        self.setLayout(layout)
+
+        add_button = QPushButton("Add Task")
+        add_button.clicked.connect(self.promptAddTask)
+        layout.addWidget(add_button, 1, 1)
+
+        do_button = QPushButton("Begin Task execution!")
+        do_button.clicked.connect(self.logic.beginExec)
+        layout.addWidget(do_button, 2, 1)
+
+    def promptAddTask(self):
+        task = newTaskDialog(self)
+        if task:
+            self.logic.addTask(task)
+
+
+# ── mainWindow ─────────────────────────────────────────────────────────────────
+# Single wiring point. Everything connects here.
 
 
 class mainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.logic = Logic()
 
-        # Apparently I have to set a central widget and give layout to that instead of the mainwindow
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        self.layout = QGridLayout()
-        central_widget.setLayout(self.layout)
+        layout = QGridLayout()
+        central_widget.setLayout(layout)
 
-        self.logic = Logic(self)
+        self.task_frame = taskFrame(self.logic)
+        self.manage_frame = manageFrame(self.logic, parent=self)
 
-        self.task_frame = taskFrame()
-        self.layout.addWidget(self.task_frame, 1, 1, 1, 1)
+        layout.addWidget(self.task_frame, 1, 1)
+        layout.addWidget(self.manage_frame, 2, 1)
 
-        self.manage_frame = manageFrame(self.logic)
-        self.layout.addWidget(self.manage_frame, 2, 1, 1, 1)
-
+        self.logic.exec_started.connect(self.onExecStarted)
         self.show()
+
+    def onExecStarted(self):
+        # TODO: swap to QStackedWidget execution view here
+        print("exec started — swap view here")
 
 
 def main():
