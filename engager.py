@@ -24,7 +24,7 @@ from uuid import uuid4
 
 class Logic(QObject):
     tasks_changed = pyqtSignal(list)  # emitted after every add / delete
-    exec_started = pyqtSignal()  # emitted when the user hits Begin
+    start_doing = pyqtSignal(dict)
 
     def __init__(self):
         super().__init__()
@@ -38,8 +38,8 @@ class Logic(QObject):
         self.tasks.remove(task)
         self.tasks_changed.emit(list(self.tasks))
 
-    def beginExec(self):
-        self.exec_started.emit()
+    def beginExec(self, task: dict):
+        self.start_doing.emit(task)
 
 
 # ── Dialog (standalone function) ───────────────────────────────────────────────
@@ -96,6 +96,7 @@ def newTaskDialog(parent) -> dict | None:
 
 class taskWidget(QWidget):
     delete_requested = pyqtSignal(dict)
+    execution_started = pyqtSignal(dict)
 
     def __init__(self, task: dict):
         super().__init__()
@@ -112,6 +113,10 @@ class taskWidget(QWidget):
         delete_button = QPushButton("Delete")
         delete_button.clicked.connect(lambda: self.delete_requested.emit(self.task))
         layout.addWidget(delete_button)
+
+        do_button = QPushButton("<Execute>")
+        do_button.clicked.connect(self.engage)
+        layout.addWidget(do_button)
 
     def showInformation(self):
         pop_up = QDialog(self)
@@ -130,6 +135,9 @@ class taskWidget(QWidget):
         ok.clicked.connect(pop_up.accept)
         layout.addWidget(ok, 3, 1)
         pop_up.exec()
+
+    def engage(self):
+        self.execution_started.emit(self.task)
 
 
 # ── taskFrame ──────────────────────────────────────────────────────────────────
@@ -153,6 +161,7 @@ class taskFrame(QFrame):
         for task in tasks:
             w = taskWidget(task)
             w.delete_requested.connect(self.logic.deleteTask)
+            w.execution_started.connect(self.logic.beginExec)
             self.vbox.addWidget(w)
 
 
@@ -171,14 +180,21 @@ class manageFrame(QWidget):
         add_button.clicked.connect(self.promptAddTask)
         layout.addWidget(add_button, 1, 1)
 
-        do_button = QPushButton("Begin Task execution!")
-        do_button.clicked.connect(self.logic.beginExec)
-        layout.addWidget(do_button, 2, 1)
-
     def promptAddTask(self):
         task = newTaskDialog(self)
         if task:
             self.logic.addTask(task)
+
+
+# -- Execution Popup -------------------------------------------------connect
+class executionPopup:
+    def __init__(self, mw) -> None:
+        self.mw = mw
+        self.mw.logic.start_doing.connect(self.start)
+
+    def start(self, task: dict):
+        dialog = QDialog(self.mw)
+        dialog.show()
 
 
 # ── mainWindow ─────────────────────────────────────────────────────────────────
@@ -201,12 +217,9 @@ class mainWindow(QMainWindow):
         layout.addWidget(self.task_frame, 1, 1)
         layout.addWidget(self.manage_frame, 2, 1)
 
-        self.logic.exec_started.connect(self.onExecStarted)
-        self.show()
+        self.execution_popup = executionPopup(self)
 
-    def onExecStarted(self):
-        # TODO: swap to QStackedWidget execution view here
-        print("exec started — swap view here")
+        self.show()
 
 
 def main():
