@@ -193,8 +193,22 @@ class executionPopup:
         self.mw.logic.start_doing.connect(self.start)
 
     def start(self, task: dict):
+        def finish(task):
+            self.mw.logic.deleteTask(task)
+            dialog.deleteLater()
+
         dialog = QDialog(self.mw)
-        dialog.show()
+        layout = QGridLayout()
+        dialog.setLayout(layout)
+
+        task_name = QLabel(f"Executing: {task['name']}")
+        layout.addWidget(task_name)
+
+        finish_button = QPushButton("Finish")
+        finish_button.clicked.connect(lambda: finish(task))
+        layout.addWidget(finish_button)
+
+        dialog.exec()
 
 
 # ── mainWindow ─────────────────────────────────────────────────────────────────
