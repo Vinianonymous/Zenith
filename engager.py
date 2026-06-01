@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
 )
-from PyQt6.QtCore import QObject, pyqtSignal, QDate
+from PyQt6.QtCore import QObject, pyqtSignal, QDate, QTimer
 from uuid import uuid4
 
 
@@ -203,6 +203,13 @@ class executionPopup:
 
         task_name = QLabel(f"Executing: {task['name']}")
         layout.addWidget(task_name)
+
+        def cancel():
+            dialog.deleteLater()
+
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(lambda: cancel())
+        layout.addWidget(cancel_button)
 
         finish_button = QPushButton("Finish")
         finish_button.clicked.connect(lambda: finish(task))
