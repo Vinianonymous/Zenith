@@ -198,7 +198,6 @@ class stopwatch(QWidget):
         self.timePassed = {"hours": 0, "minutes": 59, "seconds": 59}
         self.timer = QTimer()
         self.timer.timeout.connect(self.updateTime)
-        self.start()
 
     def start(self):
         self.running = True
@@ -238,6 +237,7 @@ class executionPopup:
         dialog.setLayout(layout)
 
         self.timeSpent = stopwatch(self)
+        self.timeSpent.start()
         layout.addWidget(self.timeSpent)
         layout.addWidget(self.timeSpent)
         task_name = QLabel(f"Executing: {task['name']}")
