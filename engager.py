@@ -186,6 +186,42 @@ class manageFrame(QWidget):
             self.logic.addTask(task)
 
 
+# Timer
+class stopwatch(QWidget):
+    def __init__(self, parent):
+        super().__init__()
+        self.layout = QHBoxLayout()
+
+        self.timeLabel = QLabel("00:00:00")
+        self.layout.addWidget(self.timeLabel)
+        self.setLayout(self.layout)
+        self.timePassed = {"hours": 0, "minutes": 59, "seconds": 59}
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.updateTime)
+        self.start()
+
+    def start(self):
+        self.running = True
+        self.timer.start(1000)
+
+    def updateTime(self):
+        self.timePassed["seconds"] += 1
+        if self.timePassed["seconds"] < 59:
+            self.timePassed["minutes"] += 1
+            self.timePassed["seconds"] = 0
+        elif self.timePassed["minutes"] < 59:
+            self.timePassed["hours"] += 1
+            self.timePassed["minutes"] = 0
+
+        self.updateLabel()
+
+    def updateLabel(self):
+        hours = self.timePassed["hours"]
+        minutes = self.timePassed["minutes"]
+        seconds = self.timePassed["seconds"]
+        self.timeLabel.setText(f"{hours:02}:{minutes:02d}:{seconds:02d}")
+
+
 # -- Execution Popup -------------------------------------------------connect
 class executionPopup:
     def __init__(self, mw) -> None:
@@ -201,6 +237,9 @@ class executionPopup:
         layout = QGridLayout()
         dialog.setLayout(layout)
 
+        self.timeSpent = stopwatch(self)
+        layout.addWidget(self.timeSpent)
+        layout.addWidget(self.timeSpent)
         task_name = QLabel(f"Executing: {task['name']}")
         layout.addWidget(task_name)
 
