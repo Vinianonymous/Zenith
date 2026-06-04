@@ -195,20 +195,30 @@ class stopwatch(QWidget):
         self.timeLabel = QLabel("00:00:00")
         self.layout.addWidget(self.timeLabel)
         self.setLayout(self.layout)
-        self.timePassed = {"hours": 0, "minutes": 59, "seconds": 59}
+        self.timePassed = {"hours": 0, "minutes": 0, "seconds": 0}
+        self.running = False
         self.timer = QTimer()
+
         self.timer.timeout.connect(self.updateTime)
 
-    def start(self):
-        self.running = True
-        self.timer.start(1000)
+    def startStop(self):
+        if not self.running:
+            self.running = True
+            self.timer.start(1000)
+        else:
+            self.running = False
+            self.timer.stop()
+
+    def reset(self):
+        for key in self.timePassed:
+            self.timePassed[key] = 0
 
     def updateTime(self):
         self.timePassed["seconds"] += 1
-        if self.timePassed["seconds"] < 59:
+        if self.timePassed["seconds"] > 59:
             self.timePassed["minutes"] += 1
             self.timePassed["seconds"] = 0
-        elif self.timePassed["minutes"] < 59:
+        elif self.timePassed["minutes"] > 59:
             self.timePassed["hours"] += 1
             self.timePassed["minutes"] = 0
 
@@ -237,7 +247,7 @@ class executionPopup:
         dialog.setLayout(layout)
 
         self.timeSpent = stopwatch(self)
-        self.timeSpent.start()
+        self.timeSpent.startStop()
         layout.addWidget(self.timeSpent)
         layout.addWidget(self.timeSpent)
         task_name = QLabel(f"Executing: {task['name']}")
