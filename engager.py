@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import QObject, pyqtSignal, QDate, QTimer
 from uuid import uuid4
+from filehandler import fileHandler
 
 
 # ── Business Logic ─────────────────────────────────────────────────────────────
@@ -29,14 +30,18 @@ class Logic(QObject):
     def __init__(self):
         super().__init__()
         self.tasks = []
+        self.file_handler = fileHandler()
+        self.tasks = self.file_handler.read("engager.json")
 
     def addTask(self, task: dict):
         self.tasks.append(task)
         self.tasks_changed.emit(list(self.tasks))
+        self.file_handler.write("engager.json", self.tasks)
 
     def deleteTask(self, task: dict):
         self.tasks.remove(task)
         self.tasks_changed.emit(list(self.tasks))
+        self.file_handler.write("engager.json", self.tasks)
 
     def beginExec(self, task: dict):
         self.start_doing.emit(task)
@@ -282,6 +287,7 @@ class mainWindow(QMainWindow):
         central_widget.setLayout(layout)
 
         self.task_frame = taskFrame(self.logic)
+        self.task_frame.refresh(self.logic.tasks)
         self.manage_frame = manageFrame(self.logic, parent=self)
 
         layout.addWidget(self.task_frame, 1, 1)
