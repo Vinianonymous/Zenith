@@ -13,14 +13,10 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
 )
-from PyQt6.QtCore import QObject, pyqtSignal, QDate, QTimer
+from PyQt6.QtCore import QObject, pyqtSignal, QDate, QTimer, QUrl
+from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from uuid import uuid4
 from filehandler import fileHandler
-
-
-# ── Business Logic ─────────────────────────────────────────────────────────────
-# Logic knows nothing about any widget. It only manages the task list
-# and announces changes via signals.
 
 
 class Logic(QObject):
@@ -45,10 +41,6 @@ class Logic(QObject):
 
     def beginExec(self, task: dict):
         self.start_doing.emit(task)
-
-
-# ── Dialog (standalone function) ───────────────────────────────────────────────
-# Lives in the UI layer. Returns a task dict or None. No reference to Logic.
 
 
 def newTaskDialog(parent) -> dict | None:
@@ -92,11 +84,6 @@ def newTaskDialog(parent) -> dict | None:
     if pop_up.exec():
         return pop_up.task
     return None
-
-
-# ── taskWidget ─────────────────────────────────────────────────────────────────
-# Emits delete_requested instead of calling Logic directly.
-# No reference to Logic at all.
 
 
 class taskWidget(QWidget):
@@ -145,10 +132,6 @@ class taskWidget(QWidget):
         self.execution_started.emit(self.task)
 
 
-# ── taskFrame ──────────────────────────────────────────────────────────────────
-# Subscribes to Logic.tasks_changed and redraws itself.
-
-
 class taskFrame(QFrame):
     def __init__(self, logic: Logic):
         super().__init__()
@@ -170,10 +153,6 @@ class taskFrame(QFrame):
             self.vbox.addWidget(w)
 
 
-# ── manageFrame ────────────────────────────────────────────────────────────────
-# Owns the dialog call. Passes the result to Logic.
-
-
 class manageFrame(QWidget):
     def __init__(self, logic: Logic, parent=None):
         super().__init__(parent)
@@ -191,7 +170,6 @@ class manageFrame(QWidget):
             self.logic.addTask(task)
 
 
-# Timer
 class stopwatch(QWidget):
     def __init__(self, parent):
         super().__init__()
@@ -200,11 +178,16 @@ class stopwatch(QWidget):
         self.timeLabel = QLabel("00:00:00")
         self.layout.addWidget(self.timeLabel)
         self.setLayout(self.layout)
-        self.timePassed = {"hours": 0, "minutes": 0, "seconds": 0}
+        self.timePassed = {"hours": 0, "minutes": 29, "seconds": 50}
         self.running = False
         self.timer = QTimer()
 
         self.timer.timeout.connect(self.updateTime)
+
+        self.audio = QAudioOutput()
+        self.player = QMediaPlayer()
+        self.player.setAudioOutput(self.audio)
+        self.player.setSource(QUrl.fromLocalFile("alarm.mp3"))
 
     def startStop(self):
         if not self.running:
@@ -228,6 +211,9 @@ class stopwatch(QWidget):
             self.timePassed["minutes"] = 0
 
         self.updateLabel()
+
+        if self.timePassed["minutes"] % 30 == 0:
+            self.player.play()
 
     def updateLabel(self):
         hours = self.timePassed["hours"]
@@ -272,10 +258,6 @@ class executionPopup:
         dialog.exec()
 
 
-# ── mainWindow ─────────────────────────────────────────────────────────────────
-# Single wiring point. Everything connects here.
-
-
 class mainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -294,7 +276,6 @@ class mainWindow(QMainWindow):
         layout.addWidget(self.manage_frame, 2, 1)
 
         self.execution_popup = executionPopup(self)
-
         self.show()
 
 
