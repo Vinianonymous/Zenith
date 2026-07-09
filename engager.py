@@ -12,36 +12,59 @@ from PyQt6.QtWidgets import (
     QFrame,
     QVBoxLayout,
     QHBoxLayout,
+    QDialogButtonBox,
+    QGroupBox,
+    QRadioButton,
 )
-from PyQt6.QtCore import QObject, pyqtSignal, QDate, QTimer, QUrl
+from PyQt6.QtCore import QObject, pyqtSignal, QDate, QTimer, QUrl, QSettings
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 from uuid import uuid4
 from filehandler import fileHandler
 
 
 class Logic(QObject):
+    # Class in which all of the backend is rendered.
+
+    # Signal of alteration in the List so GUI can listen to it
     tasks_changed = pyqtSignal(list)  # emitted after every add / delete
+
+    # Signal of task execution for the UI to pop up
     start_doing = pyqtSignal(dict)
 
     def __init__(self):
         super().__init__()
+        """
+        Initializes the task variable with either an empty list or the tasks in engager.json
+        """
+
         self.tasks = []
         self.file_handler = fileHandler()
         self.tasks = self.file_handler.read("engager.json")
 
     def addTask(self, task: dict):
+        """
+        Adds the task dictionary to the list and emits an signal with said list for the UI to update.
+        Writes the new tasklist to the file for storage
+
+        """
+
+        # Adds the tasks and emits signal with the TL
         self.tasks.append(task)
         self.tasks_changed.emit(list(self.tasks))
+
         self.file_handler.write("engager.json", self.tasks)
 
     def deleteTask(self, task: dict):
+        """
+        Removes the element with the values specified per the dict and emits a signal for the GUI
+        Writes new list to the file for storage
+        """
         self.tasks.remove(task)
         self.tasks_changed.emit(list(self.tasks))
         self.file_handler.write("engager.json", self.tasks)
 
     def beginExec(self, task: dict):
         self.start_doing.emit(task)
-
 
 def newTaskDialog(parent) -> dict | None:
     pop_up = QDialog(parent)
@@ -152,33 +175,16 @@ class taskFrame(QFrame):
             w.execution_started.connect(self.logic.beginExec)
             self.vbox.addWidget(w)
 
-
-class manageFrame(QWidget):
-    def __init__(self, logic: Logic, parent=None):
-        super().__init__(parent)
-        self.logic = logic
-        layout = QGridLayout()
-        self.setLayout(layout)
-
-        add_button = QPushButton("Add Task")
-        add_button.clicked.connect(self.promptAddTask)
-        layout.addWidget(add_button, 1, 1)
-
-    def promptAddTask(self):
-        task = newTaskDialog(self)
-        if task:
-            self.logic.addTask(task)
-
-
 class stopwatch(QWidget):
-    def __init__(self, parent):
+    def __init__(self, parent, cycleTime):
         super().__init__()
         self.layout = QHBoxLayout()
+        self.cycle_time = cycleTime
 
         self.timeLabel = QLabel("00:00:00")
         self.layout.addWidget(self.timeLabel)
         self.setLayout(self.layout)
-        self.timePassed = {"hours": 0, "minutes": 29, "seconds": 50}
+        self.timePassed = {"hours": 0, "minutes": 0, "seconds": 0}
         self.running = False
         self.timer = QTimer()
 
@@ -206,13 +212,13 @@ class stopwatch(QWidget):
         if self.timePassed["seconds"] > 59:
             self.timePassed["minutes"] += 1
             self.timePassed["seconds"] = 0
-        elif self.timePassed["minutes"] > 59:
+        if self.timePassed["minutes"] > 59:
             self.timePassed["hours"] += 1
             self.timePassed["minutes"] = 0
 
         self.updateLabel()
 
-        if self.timePassed["minutes"] % 30 == 0:
+        if self.timePassed["minutes"] % self.cycle_time == 0 and self.timePassed["seconds"] == 0:
             self.player.play()
 
     def updateLabel(self):
@@ -224,8 +230,9 @@ class stopwatch(QWidget):
 
 # -- Execution Popup -------------------------------------------------connect
 class executionPopup:
-    def __init__(self, mw) -> None:
+    def __init__(self, mw, cycle_time: int) -> None:
         self.mw = mw
+        self.cycle_time = cycle_time
         self.mw.logic.start_doing.connect(self.start)
 
     def start(self, task: dict):
@@ -237,9 +244,8 @@ class executionPopup:
         layout = QGridLayout()
         dialog.setLayout(layout)
 
-        self.timeSpent = stopwatch(self)
+        self.timeSpent = stopwatch(self, self.cycle_time)
         self.timeSpent.startStop()
-        layout.addWidget(self.timeSpent)
         layout.addWidget(self.timeSpent)
         task_name = QLabel(f"Executing: {task['name']}")
         layout.addWidget(task_name)
@@ -257,11 +263,73 @@ class executionPopup:
 
         dialog.exec()
 
+# the ui for settings manager
+class settingsDialog(QDialog):
+    def __init__(self, settings, parent=None):
+        """
+        Shows general settings about the app.
+        """
+
+        # Some UI boiler plate
+        super().__init__(parent)
+        self.settings = settings
+        self.setWindowTitle("Settings")
+        self.layout = QGridLayout()
+        self.setLayout(self.layout)
+
+        # Define buttons using standard flags
+        buttons = (
+            QDialogButtonBox.StandardButton.Ok | 
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        
+        # Create the button box
+        self.buttonBox = QDialogButtonBox(buttons)
+        
+        # Connect signals to slots
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+        
+        # Cycle alarm settings stuff
+        self.cycle_group = QGroupBox("Cycle Alarm Settings")
+        self.cycle_group_layout = QHBoxLayout()
+        self.cycle_amount_label = QLabel("Time Per Cycle (minutes):")
+        self.cycle_group_layout.addWidget(self.cycle_amount_label)
+
+        self.cycle_amount_input = QTextEdit()
+        self.cycle_group_layout.addWidget(self.cycle_amount_input)
+
+        self.cycle_group.setLayout(self.cycle_group_layout)
+
+        # Layout additions
+        self.layout.addWidget(self.cycle_group)
+        self.layout.addWidget(self.buttonBox)
+    def accept(self):
+        # Save the cycle amount
+        cycle_time = int(self.cycle_amount_input.toPlainText())
+        self.settings.setValue("CycleTime", cycle_time)
+        super().accept()
+
+
+# Pretty damn good name, dare i say.
+class settingsManager(QObject):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.settings = QSettings("For God Corp", "Zenith")
+        self.settings_dialog = settingsDialog(self.settings, parent)
+    def show(self):
+        """
+        Show the settings dialog.
+        """
+        self.settings_dialog.exec()
+        self.settings.sync()
+        
 
 class mainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.logic = Logic()
+        self.settings_manager = settingsManager(self)
 
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -270,13 +338,26 @@ class mainWindow(QMainWindow):
 
         self.task_frame = taskFrame(self.logic)
         self.task_frame.refresh(self.logic.tasks)
-        self.manage_frame = manageFrame(self.logic, parent=self)
+        self.add_button = QPushButton("Add Task")
+        self.add_button.clicked.connect(self.promptAddTask)
+
+        self.config_button = QPushButton("Configure")
+        self.config_button.clicked.connect(self.settings_manager.show) 
 
         layout.addWidget(self.task_frame, 1, 1)
-        layout.addWidget(self.manage_frame, 2, 1)
+        layout.addWidget(self.add_button, 2, 1)
+        layout.addWidget(self.config_button, 2, 2)
 
-        self.execution_popup = executionPopup(self)
+        self.execution_popup = executionPopup(
+            self,
+            int(self.settings_manager.settings.value("CycleTime", defaultValue=30))
+        )
         self.show()
+
+    def promptAddTask(self):
+        task = newTaskDialog(self)
+        if task:
+            self.logic.addTask(task)
 
 
 def main():
