@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QGroupBox,
     QRadioButton,
+    QSpinBox
 )
 from PyQt6.QtCore import QObject, pyqtSignal, QDate, QTimer, QUrl, QSettings
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
@@ -176,15 +177,16 @@ class taskFrame(QFrame):
             self.vbox.addWidget(w)
 
 class stopwatch(QWidget):
-    def __init__(self, parent, cycleTime):
+    def __init__(self, parent, cycleTime, cycleEnabled=True):
         super().__init__()
         self.layout = QHBoxLayout()
         self.cycle_time = cycleTime
+        self.cycle_enabled = cycleEnabled
 
         self.timeLabel = QLabel("00:00:00")
         self.layout.addWidget(self.timeLabel)
         self.setLayout(self.layout)
-        self.timePassed = {"hours": 0, "minutes": 0, "seconds": 0}
+        self.timePassed = {"hours": 0, "minutes": 0, "seconds": 57}
         self.running = False
         self.timer = QTimer()
 
@@ -218,7 +220,7 @@ class stopwatch(QWidget):
 
         self.updateLabel()
 
-        if self.timePassed["minutes"] % self.cycle_time == 0 and self.timePassed["seconds"] == 0:
+        if self.cycle_enabled and self.timePassed["minutes"] % self.cycle_time == 0 and self.timePassed["seconds"] == 0:
             self.player.play()
 
     def updateLabel(self):
@@ -230,9 +232,10 @@ class stopwatch(QWidget):
 
 # -- Execution Popup -------------------------------------------------connect
 class executionPopup:
-    def __init__(self, mw, cycle_time: int) -> None:
+    def __init__(self, mw, cycle_time: int, cycle_enabled: bool = True) -> None:
         self.mw = mw
         self.cycle_time = cycle_time
+        self.cycle_enabled = cycle_enabled
         self.mw.logic.start_doing.connect(self.start)
 
     def start(self, task: dict):
@@ -244,7 +247,7 @@ class executionPopup:
         layout = QGridLayout()
         dialog.setLayout(layout)
 
-        self.timeSpent = stopwatch(self, self.cycle_time)
+        self.timeSpent = stopwatch(self, self.cycle_time, self.cycle_enabled)
         self.timeSpent.startStop()
         layout.addWidget(self.timeSpent)
         task_name = QLabel(f"Executing: {task['name']}")
@@ -296,9 +299,14 @@ class settingsDialog(QDialog):
         self.cycle_amount_label = QLabel("Time Per Cycle (minutes):")
         self.cycle_group_layout.addWidget(self.cycle_amount_label)
 
-        self.cycle_amount_input = QTextEdit()
+        self.cycle_amount_input = QSpinBox()
+        self.cycle_amount_input.setValue(int(self.settings.value("CycleTime", defaultValue=30)))
         self.cycle_group_layout.addWidget(self.cycle_amount_input)
 
+        self.cycle_toggle = QRadioButton("Activate Cycle Alarm")
+        self.cycle_toggle.setChecked(bool(self.settings.value("CycleEnable", defaultValue=True)))
+        self.cycle_group_layout.addWidget(self.cycle_toggle)
+# 
         self.cycle_group.setLayout(self.cycle_group_layout)
 
         # Layout additions
@@ -306,8 +314,9 @@ class settingsDialog(QDialog):
         self.layout.addWidget(self.buttonBox)
     def accept(self):
         # Save the cycle amount
-        cycle_time = int(self.cycle_amount_input.toPlainText())
+        cycle_time = self.cycle_amount_input.value()
         self.settings.setValue("CycleTime", cycle_time)
+        self.settings.setValue("CycleEnable", self.cycle_toggle.isChecked())
         super().accept()
 
 
@@ -362,7 +371,7 @@ class mainWindow(QMainWindow):
 
 def main():
     app = QApplication([])
-    main_window = mainWindow()
+    mainWindow()
     app.exec()
 
 
