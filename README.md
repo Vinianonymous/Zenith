@@ -21,4 +21,4 @@ The meaning of Zenith is the highest point an astronomical body can take over ou
 	- [ ] Add:
 		- [ ] Reset 
 		- [ ] Radar Chart of Performance
-- [ ] Add Dark Theme
+- [x] Add Dark Theme
