@@ -4,6 +4,7 @@ from dialog import newTaskDialog, executionPopup
 from logic_class import Logic
 from settings import settingsManager
 from widgets import taskFrame
+from pathlib import Path
 
 
 class mainWindow(QMainWindow):
@@ -42,8 +43,11 @@ class mainWindow(QMainWindow):
 
 
 def main():
+    style = Path(__file__).parent / "styles.qss"
     # Added sys.argv for robust QApplication initialization
     app = QApplication(sys.argv)
+    app.setStyle("Fusion")
+    app.setStyleSheet(style.read_text(encoding="utf-8"))
     window = mainWindow()  # Kept a reference to prevent garbage collection
     sys.exit(app.exec())
 
