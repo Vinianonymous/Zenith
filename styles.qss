@@ -1,0 +1,166 @@
+/* ===== Global ===== */
+
+QWidget {
+    background-color: #202124;
+    color: #E8EAED;
+    font-family: "Segoe UI";
+    font-size: 10pt;
+}
+
+/* ===== Labels ===== */
+
+QLabel {
+    background: transparent;
+    color: #E8EAED;
+}
+
+/* ===== Buttons ===== */
+
+QPushButton {
+    background-color: #2D2F31;
+    border: 1px solid #3C4043;
+    border-radius: 6px;
+    padding: 6px 12px;
+}
+
+QPushButton:hover {
+    background-color: #383A3D;
+}
+
+QPushButton:pressed {
+    background-color: #44474A;
+}
+
+QPushButton:disabled {
+    background-color: #2A2A2A;
+    color: #777777;
+}
+
+/* ===== Text Inputs ===== */
+
+QLineEdit,
+QTextEdit,
+QPlainTextEdit {
+    background-color: #2D2F31;
+    border: 1px solid #3C4043;
+    border-radius: 6px;
+    padding: 5px;
+    selection-background-color: #4A90E2;
+}
+
+/* ===== ComboBox ===== */
+
+QComboBox {
+    background-color: #2D2F31;
+    border: 1px solid #3C4043;
+    border-radius: 6px;
+    padding: 5px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #2D2F31;
+    border: 1px solid #3C4043;
+    selection-background-color: #4A90E2;
+}
+
+/* ===== Spin Boxes ===== */
+
+QSpinBox,
+QDoubleSpinBox {
+    background-color: #2D2F31;
+    border: 1px solid #3C4043;
+    border-radius: 6px;
+    padding: 5px;
+}
+
+/* ===== CheckBox & RadioButton ===== */
+
+QCheckBox,
+QRadioButton {
+    spacing: 6px;
+}
+
+/* ===== GroupBox ===== */
+
+QGroupBox {
+    border: 1px solid #3C4043;
+    border-radius: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    font-weight: bold;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 4px;
+}
+
+/* ===== Menu ===== */
+
+QMenuBar {
+    background-color: #2D2F31;
+}
+
+QMenuBar::item:selected {
+    background-color: #3C4043;
+}
+
+QMenu {
+    background-color: #2D2F31;
+    border: 1px solid #3C4043;
+}
+
+QMenu::item:selected {
+    background-color: #4A90E2;
+}
+
+/* ===== Tabs ===== */
+
+QTabWidget::pane {
+    border: 1px solid #3C4043;
+}
+
+QTabBar::tab {
+    background: #2D2F31;
+    padding: 8px 14px;
+}
+
+QTabBar::tab:selected {
+    background: #3C4043;
+}
+
+/* ===== Scrollbars ===== */
+
+QScrollBar:vertical {
+    background: #202124;
+    width: 12px;
+}
+
+QScrollBar::handle:vertical {
+    background: #4A4A4A;
+    border-radius: 6px;
+}
+
+QScrollBar::add-line,
+QScrollBar::sub-line {
+    height: 0;
+}
+
+QScrollBar:horizontal {
+    background: #202124;
+    height: 12px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #4A4A4A;
+    border-radius: 6px;
+}
+
+/* ===== Tooltips ===== */
+
+QToolTip {
+    background-color: #303134;
+    color: #E8EAED;
+    border: 1px solid #555555;
+}
