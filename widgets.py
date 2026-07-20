@@ -9,6 +9,32 @@ from PyQt6.QtWidgets import (
     QDialog
 )
 from PyQt6.QtCore import pyqtSignal
+from stopwatch import stopwatch
+from PyQt6.QtMultimedia import QAudio
+from dialog import cycleWarn
+
+
+class cycleTimer(QFrame):
+    def __init__(self, cycleTime: int, cycleAlarmEnabled:bool):
+        super().__init__()
+        self.currentCycle = 1
+        self.cycle_counter = QLabel(f"Cycle: {self.currentCycle}")
+        self.stopwatch = stopwatch(self, cycleTime, cycleEnabled=cycleAlarmEnabled)
+        self.stopwatch.cycleCompleted.connect(self.updateCycleCounter)
+
+        layout = QHBoxLayout()
+        layout.addWidget(self.cycle_counter)
+        layout.addWidget(self.stopwatch)
+        self.setLayout(layout)
+    
+    def start_timer(self):
+        self.stopwatch.startStop()
+
+    def updateCycleCounter(self):
+        self.currentCycle += 1
+        self.cycle_counter.setText(f"Cycle: {self.currentCycle}")
+        cycleWarn(self, f"Cycle {self.currentCycle} completed! Stretch.")
+
 
 class taskWidget(QWidget):
     delete_requested = pyqtSignal(dict)

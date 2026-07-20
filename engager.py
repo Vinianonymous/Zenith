@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import QApplication, QGridLayout, QMainWindow, QPushButton,
 from dialog import newTaskDialog, executionPopup
 from logic_class import Logic
 from settings import settingsManager
-from widgets import taskFrame
+from widgets import taskFrame, cycleTimer
 from pathlib import Path
 
 
@@ -17,6 +17,10 @@ class mainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
         layout = QGridLayout()
         central_widget.setLayout(layout)
+        self.cycle_timer = cycleTimer(
+          int(self.settings_manager.settbings.value("CycleTime", defaultValue=30)), 
+          bool(self.settings_manager.settings.value("CycleEnabled", defaultValue=True))
+        )
         self.task_frame = taskFrame(self.logic)
         self.task_frame.refresh(self.logic.tasks)
         self.add_button = QPushButton("Add Task")
@@ -24,16 +28,17 @@ class mainWindow(QMainWindow):
 
         self.config_button = QPushButton("Configure")
         self.config_button.clicked.connect(self.settings_manager.show)
-
-        layout.addWidget(self.task_frame, 1, 1, 1, 2)
+        
+        layout.addWidget(self.cycle_timer, 0, 0, 1, 2)
+        layout.addWidget(self.task_frame, 1, 0, 1, 2)
         layout.addWidget(self.add_button, 2, 1)
         layout.addWidget(self.config_button, 2, 2)
 
         self.execution_popup = executionPopup(
-            self,
-            int(self.settings_manager.settings.value("CycleTime", defaultValue=30)),
+            self #CURRENT ERROR
         )
 
+        self.cycle_timer.start_timer()
         self.show()
 
     def promptAddTask(self):
@@ -43,6 +48,7 @@ class mainWindow(QMainWindow):
 
 
 def main():
+    # This comment was added from the TTY interface lmao, hello future me,
     style = Path(__file__).parent / "styles.qss"
     # Added sys.argv for robust QApplication initialization
     app = QApplication(sys.argv)

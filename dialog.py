@@ -13,60 +13,18 @@ from PyQt6.QtWidgets import (
     QWidget,
     QGridLayout
 )
+from stopwatch import stopwatch
 
-class stopwatch(QWidget):
-    def __init__(self, parent, cycleTime, cycleEnabled=True):
-        super().__init__()
-        self.layout = QGridLayout()
-        self.cycle_time = cycleTime
-        self.cycle_enabled = cycleEnabled
-
-        self.timeLabel = QLabel("00:00:00")
-        self.layout.addWidget(self.timeLabel)
-        self.setLayout(self.layout)
-        self.timePassed = {"hours": 0, "minutes": 0, "seconds": 0}
-        self.running = False
-        self.timer = QTimer()
-
-        self.timer.timeout.connect(self.updateTime)
-
-        self.audio = QAudioOutput()
-        self.player = QMediaPlayer()
-        self.player.setAudioOutput(self.audio)
-        self.player.setSource(QUrl.fromLocalFile("alarm.mp3"))
-
-    def startStop(self):
-        if not self.running:
-            self.running = True
-            self.timer.start(1000)
-        else:
-            self.running = False
-            self.timer.stop()
-
-    def reset(self):
-        for key in self.timePassed:
-            self.timePassed[key] = 0
-
-    def updateTime(self):
-        self.timePassed["seconds"] += 1
-        if self.timePassed["seconds"] > 59:
-            self.timePassed["minutes"] += 1
-            self.timePassed["seconds"] = 0
-        if self.timePassed["minutes"] > 59:
-            self.timePassed["hours"] += 1
-            self.timePassed["minutes"] = 0
-
-        self.updateLabel()
-
-        if self.cycle_enabled and self.timePassed["minutes"] % self.cycle_time == 0 and self.timePassed["seconds"] == 0:
-            self.player.play()
-
-    def updateLabel(self):
-        hours = self.timePassed["hours"]
-        minutes = self.timePassed["minutes"]
-        seconds = self.timePassed["seconds"]
-        self.timeLabel.setText(f"{hours:02}:{minutes:02d}:{seconds:02d}")
-
+def cycleWarn(parent, message):
+    dialog = QDialog(parent)
+    dialog.setWindowTitle("Cycle Completed")
+    layout = QGridLayout()
+    dialog.setLayout(layout)
+    layout.addWidget(QLabel(message), 0, 0)
+    ok_button = QPushButton("OK")
+    ok_button.clicked.connect(dialog.accept)
+    layout.addWidget(ok_button, 1, 0)
+    dialog.exec()
 
 
 def newTaskDialog(parent) -> dict | None:
@@ -113,10 +71,8 @@ def newTaskDialog(parent) -> dict | None:
 
 # -- Execution Popup -------------------------------------------------connect
 class executionPopup:
-    def __init__(self, mw, cycle_time: int, cycle_enabled: bool = True) -> None:
+    def __init__(self, mw) -> None:
         self.mw = mw
-        self.cycle_time = cycle_time
-        self.cycle_enabled = cycle_enabled
         self.mw.logic.start_doing.connect(self.start)
 
     def start(self, task: dict):
@@ -128,7 +84,7 @@ class executionPopup:
         layout = QGridLayout()
         dialog.setLayout(layout)
 
-        self.timeSpent = stopwatch(self, self.cycle_time, self.cycle_enabled)
+        self.timeSpent = stopwatch(self, 0, cycleEnabled=False)
         self.timeSpent.startStop()
         layout.addWidget(self.timeSpent)
         task_name = QLabel(f"Executing: {task['name']}")
