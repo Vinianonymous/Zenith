@@ -67,7 +67,7 @@ class settingsDialog(QDialog):
         self.cycle_alarm_filepath_label = QLabel("Alarm Filepath: ")
         self.cycle_alarm_filepath = QLineEdit("Alarm Sound Filepath")
         self.cycle_alarm_filepath.setText(
-            self.settings.value("CycleAlarmSoundPath", defaultValue="alarm.mp3")
+            self.settings.value("AlarmFile", defaultValue="alarm.mp3")
         )
         self.cycle_group_layout.addWidget(self.cycle_alarm_filepath_label, 2, 1)
         self.cycle_group_layout.addWidget(self.cycle_alarm_filepath, 2, 2)
@@ -109,7 +109,7 @@ class settingsDialog(QDialog):
         cycle_time = self.cycle_amount_input.value()
         self.settings.setValue("CycleTime", cycle_time)
         self.settings.setValue("CycleEnabled", self.cycle_toggle.isChecked())
-        self.settings.setValue("CycleAlarmSound", self.cycle_alarm_filepath.text())
+        self.settings.setValue("AlarmFile", self.cycle_alarm_filepath.text())
         self.settings.setValue("CycleAmount", self.cycle_amount_input.value())
         self.settings.setValue(
             "CycleMessages",
@@ -117,7 +117,7 @@ class settingsDialog(QDialog):
                 msg + "\n"
                 for msg in self.cycle_messages.toPlainText().split("\n")
                 if msg
-            ],
+            ]
         )
         self.settings.sync()
         super().accept()

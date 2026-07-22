@@ -33,6 +33,7 @@ class mainWindow(QMainWindow):
                 )
             ),
             int(self.settings_manager.settings.value("CycleAmount", defaultValue=5)),
+            self.settings_manager.settings.value("AlarmFile", defaultValue="alarm.mp3")
         )
         self.task_frame = taskFrame(self.logic)
         self.task_frame.refresh(self.logic.tasks)

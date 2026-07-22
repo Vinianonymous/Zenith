@@ -15,10 +15,11 @@ from dialog import cycleWarn
 
 class cycleTimer(QFrame):
     def __init__(
-        self, cycleTime: int, cycleAlarmEnabled: bool, messages: list, cycleAmount: int
+        self, cycleTime: int, cycleAlarmEnabled: bool, messages: list, cycleAmount: int, alarmFile:str
     ):
         super().__init__()
         self.currentCycle = 1
+        self.alarmPath = alarmFile
         self.messages = messages
         self.cycleAmount = cycleAmount
         self.cycle_counter = QLabel(f"Cycle: {self.currentCycle}")
@@ -38,9 +39,10 @@ class cycleTimer(QFrame):
         cycleWarn(
             self,
             f"Cycle {self.currentCycle} completed! {self.messages[self.currentCycle - 1]}",
+            self.alarmPath
         )
         if self.currentCycle == self.cycleAmount:
-            cycleWarn(self, "All cycles completed! Good Job, take a rest.")
+            cycleWarn(self, "All cycles completed! Good Job, take a rest.", self.alarmPath)
             self.currentCycle = 1
 
 
