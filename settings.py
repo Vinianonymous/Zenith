@@ -7,10 +7,12 @@ from PyQt6.QtWidgets import (
     QLabel,
     QSpinBox,
     QRadioButton,
+    QTextEdit,
 )
 from PyQt6.QtCore import QObject, QSettings
 import sys
 import os
+
 
 # the ui for settings manager
 class settingsDialog(QDialog):
@@ -31,8 +33,10 @@ class settingsDialog(QDialog):
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
 
-        #Restart warning
-        restart_label = QLabel("Warning: A Restart is required for changes to take effect.")
+        # Restart warning
+        restart_label = QLabel(
+            "Warning: A Restart is required for changes to take effect."
+        )
         self.layout.addWidget(restart_label, 0, 0, 1, 2)
 
         # Create the button box
@@ -56,7 +60,7 @@ class settingsDialog(QDialog):
 
         self.cycle_toggle = QRadioButton("Activate Cycle Alarm")
         self.cycle_toggle.setChecked(
-            bool(self.settings.value("CycleEnable", defaultValue=True))
+            bool(self.settings.value("CycleEnabled", defaultValue=True))
         )
         self.cycle_group_layout.addWidget(self.cycle_toggle, 1, 3)
 
@@ -68,6 +72,32 @@ class settingsDialog(QDialog):
         self.cycle_group_layout.addWidget(self.cycle_alarm_filepath_label, 2, 1)
         self.cycle_group_layout.addWidget(self.cycle_alarm_filepath, 2, 2)
 
+        self.cycle_amount_label = QLabel("Number of Cycles:")
+        self.cycle_group_layout.addWidget(self.cycle_amount_label, 3, 1)
+
+        self.cycle_amount_input = QSpinBox()
+        self.cycle_amount_input.setValue(
+            int(self.settings.value("CycleAmount", defaultValue=5))
+        )
+        self.cycle_group_layout.addWidget(self.cycle_amount_input, 3, 2)
+
+        self.cycle_messages_label = QLabel("Messages: ")
+        self.cycle_messages = QTextEdit()
+        self.cycle_messages.setPlainText(
+            "".join(
+                self.settings.value(
+                    "CycleMessages",
+                    defaultValue=[
+                        "Pray\n",
+                        "Stretch, Hydrate and Look away from screens\n",
+                        "Work in Hobbie\n",
+                    ],
+                )
+            )
+        )
+        self.cycle_group_layout.addWidget(self.cycle_messages_label, 4, 1)
+        self.cycle_group_layout.addWidget(self.cycle_messages, 4, 2)
+
         self.cycle_group.setLayout(self.cycle_group_layout)
 
         # Layout additions
@@ -78,10 +108,18 @@ class settingsDialog(QDialog):
         # Save the cycle amount
         cycle_time = self.cycle_amount_input.value()
         self.settings.setValue("CycleTime", cycle_time)
-        self.settings.setValue("CycleEnable", self.cycle_toggle.isChecked())
-        self.settings.sync()
+        self.settings.setValue("CycleEnabled", self.cycle_toggle.isChecked())
         self.settings.setValue("CycleAlarmSound", self.cycle_alarm_filepath.text())
-
+        self.settings.setValue("CycleAmount", self.cycle_amount_input.value())
+        self.settings.setValue(
+            "CycleMessages",
+            [
+                msg + "\n"
+                for msg in self.cycle_messages.toPlainText().split("\n")
+                if msg
+            ],
+        )
+        self.settings.sync()
         super().accept()
 
         # Restarts the app for changes to take effect

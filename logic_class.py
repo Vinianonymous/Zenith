@@ -1,5 +1,7 @@
 from PyQt6.QtCore import QObject, pyqtSignal
 from filehandler import fileHandler
+
+
 class Logic(QObject):
     # Class in which all of the backend is rendered.
 

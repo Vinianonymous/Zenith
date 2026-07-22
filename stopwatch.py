@@ -4,6 +4,7 @@ from PyQt6.QtCore import QTimer, QUrl, pyqtSignal
 
 class stopwatch(QWidget):
     cycleCompleted = pyqtSignal(int)
+
     def __init__(self, parent, cycleTime: int, cycleEnabled=False):
         super().__init__()
         self.layout = QGridLayout()
@@ -40,11 +41,14 @@ class stopwatch(QWidget):
             self.timePassed["hours"] += 1
             self.timePassed["minutes"] = 0
 
-        if self.timePassed["minutes"] == self.cycle_time and self.timePassed["seconds"] == 0 and self.cycle_enabled:
+        if (
+            self.timePassed["minutes"] == self.cycle_time
+            and self.timePassed["seconds"] == 0
+            and self.cycle_enabled
+        ):
             self.cycleCompleted.emit(0)
 
         self.updateLabel()
-
 
     def updateLabel(self):
         hours = self.timePassed["hours"]

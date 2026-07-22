@@ -1,8 +1,7 @@
 from uuid import uuid4
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
-from PyQt6.QtCore import QDate, QTimer, QUrl
+from PyQt6.QtCore import QDate, QUrl
 from PyQt6.QtWidgets import (
-    QCalendarWidget,
     QDateEdit,
     QDialog,
     QGridLayout,
@@ -10,12 +9,17 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QTextEdit,
-    QWidget,
-    QGridLayout
 )
 from stopwatch import stopwatch
 
-def cycleWarn(parent, message):
+
+def cycleWarn(parent, message: str, audioFile: str = "alarm.mp3"):
+    player = QMediaPlayer()
+    audio_output = QAudioOutput()
+    player.setAudioOutput(audio_output)
+    audio_file = QUrl.fromLocalFile(audioFile)
+    player.setSource(audio_file)
+
     dialog = QDialog(parent)
     dialog.setWindowTitle("Cycle Completed")
     layout = QGridLayout()
@@ -25,6 +29,7 @@ def cycleWarn(parent, message):
     ok_button.clicked.connect(dialog.accept)
     layout.addWidget(ok_button, 1, 0)
     dialog.exec()
+    player.play()
 
 
 def newTaskDialog(parent) -> dict | None:
@@ -68,6 +73,7 @@ def newTaskDialog(parent) -> dict | None:
     if pop_up.exec():
         return pop_up.task
     return None
+
 
 # -- Execution Popup -------------------------------------------------connect
 class executionPopup:

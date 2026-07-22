@@ -1,39 +1,47 @@
 from PyQt6.QtWidgets import (
-    QWidget, 
-    QFrame, 
-    QHBoxLayout, 
-    QVBoxLayout, 
-    QGridLayout, 
-    QLabel, 
-    QPushButton, 
-    QDialog
+    QWidget,
+    QFrame,
+    QHBoxLayout,
+    QVBoxLayout,
+    QGridLayout,
+    QLabel,
+    QPushButton,
+    QDialog,
 )
 from PyQt6.QtCore import pyqtSignal
 from stopwatch import stopwatch
-from PyQt6.QtMultimedia import QAudio
 from dialog import cycleWarn
 
 
 class cycleTimer(QFrame):
-    def __init__(self, cycleTime: int, cycleAlarmEnabled:bool):
+    def __init__(
+        self, cycleTime: int, cycleAlarmEnabled: bool, messages: list, cycleAmount: int
+    ):
         super().__init__()
         self.currentCycle = 1
+        self.messages = messages
+        self.cycleAmount = cycleAmount
         self.cycle_counter = QLabel(f"Cycle: {self.currentCycle}")
         self.stopwatch = stopwatch(self, cycleTime, cycleEnabled=cycleAlarmEnabled)
         self.stopwatch.cycleCompleted.connect(self.updateCycleCounter)
-
         layout = QHBoxLayout()
         layout.addWidget(self.cycle_counter)
         layout.addWidget(self.stopwatch)
         self.setLayout(layout)
-    
+
     def start_timer(self):
         self.stopwatch.startStop()
 
     def updateCycleCounter(self):
         self.currentCycle += 1
         self.cycle_counter.setText(f"Cycle: {self.currentCycle}")
-        cycleWarn(self, f"Cycle {self.currentCycle} completed! Stretch.")
+        cycleWarn(
+            self,
+            f"Cycle {self.currentCycle} completed! {self.messages[self.currentCycle - 1]}",
+        )
+        if self.currentCycle == self.cycleAmount:
+            cycleWarn(self, "All cycles completed! Good Job, take a rest.")
+            self.currentCycle = 1
 
 
 class taskWidget(QWidget):
